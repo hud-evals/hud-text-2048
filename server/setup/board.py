@@ -7,11 +7,15 @@ from . import setup
 @setup.tool("board")
 async def setup_board(board_size: int = 4) -> list[ContentBlock]:
     """Initialize a new game with the specified board size."""
-    game = setup.env
-    game.reset(size=board_size)
+    http_client = setup.env
+
+    # Reset the game via HTTP
+    response = await http_client.post("/reset", json={"board_size": board_size})
+    response.raise_for_status()
+    data = response.json()
 
     # Get the initial board state to show the agent
-    board_display = game.get_board_ascii()
+    board_display = data["board_ascii"]
 
     # Return the initial board display
     return [

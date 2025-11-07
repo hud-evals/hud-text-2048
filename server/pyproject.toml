@@ -1,0 +1,19 @@
+[project]
+name = "hud-text-2048-server"
+version = "0.1.0"
+description = "MCP server for text-based 2048 game"
+requires-python = ">=3.11"
+dependencies = [
+    "hud-python",
+    "httpx>=0.24.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["server"]

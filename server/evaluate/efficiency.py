@@ -6,8 +6,9 @@ from . import evaluate
 
 @evaluate.tool(name="efficiency", description="Evaluate game efficiency based on score/moves ratio")
 async def evaluate_efficiency(min_ratio: float):
-    game = evaluate.env
-    state = game.get_state()
+    http_client = evaluate.env
+    response = await http_client.get("/state")
+    state = response.json()
     score = state.get("score", 0)
     moves = state.get("moves", 0)
 

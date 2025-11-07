@@ -4,6 +4,7 @@ import logging
 from typing import Any
 from mcp.types import TextContent, ContentBlock
 from hud.tools.base import BaseTool
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -42,28 +43,35 @@ class MoveTool(BaseTool):
                 )
             ]
 
-        # Make the move using context (the game)
-        moved = self.env.move(direction)
+        # Make the move using HTTP client
+        try:
+            response = await self.env.post("/move", json={"direction": direction})
 
-        if not moved:
+            if response.status_code == 400:
+                error_data = response.json()
+                return [
+                    TextContent(
+                        text=f"ERROR: {error_data.get('detail', 'Invalid move')}",
+                        type="text",
+                    )
+                ]
+
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPError as e:
             return [
                 TextContent(
-                    text=f"ERROR: Cannot move {direction} - no valid moves in that direction",
+                    text=f"ERROR: Failed to make move: {e}",
                     type="text",
                 )
             ]
 
-        # Get game state
-        state = self.env.get_state()
-
         # Format response
-        board_str = self.env.get_board_ascii()
-
         text = f"Moved {direction.upper()}\n"
-        text += f"Score: {self.env.get_score()}\n"
-        text += f"{board_str}"
+        text += f"Score: {data['score']}\n"
+        text += f"{data['board_ascii']}"
 
-        if state["game_over"]:
+        if data["game_over"]:
             text += "\nGAME OVER!"
 
         return [TextContent(text=text, type="text")]

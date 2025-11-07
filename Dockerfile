@@ -1,27 +1,24 @@
 FROM python:3.11-slim
 
-# For live reload
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
-
 WORKDIR /app
 
 # Install git for dependency installation
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
-COPY pyproject.toml ./
-COPY src/ ./src/
+# Copy and install MCP server dependencies
+COPY server/pyproject.toml ./server/
+RUN pip install --no-cache-dir ./server
 
-ENV HUD_LOG_STREAM=stderr
+# Copy and install environment dependencies
+COPY environment/pyproject.toml ./environment/
+RUN pip install --no-cache-dir ./environment
 
-# Install dependencies in editable mode
-RUN pip install --no-cache-dir -e .
+# Copy source code after dependencies
+COPY server/ ./server/
+COPY environment/ ./environment/
 
-# Start context server in background, then run MCP server
-# The context server persists game state across hot-reloads when running hud dev
-CMD ["sh", "-c", "\
-    python -m hud_controller.context & \
-    sleep 1 && \
-    exec python -m hud_controller.server \
-"]
+ENV ENV_SERVER_PORT=8000
+ENV PYTHONPATH=/app
+
+# Start environment server in background, then run MCP server with stdio
+CMD ["sh", "-c", "uvicorn environment.server:app --host 0.0.0.0 --port $ENV_SERVER_PORT --log-level warning --reload >&2 & sleep 0.5 && cd /app/server && exec hud dev server.main --stdio"]

@@ -7,8 +7,10 @@ from . import evaluate
 
 @evaluate.tool("max_number")
 async def evaluate_max_number(target: int | None = None):
-    game = evaluate.env
-    highest_tile = game.get_state().get("highest_tile", 0)
+    http_client = evaluate.env
+    response = await http_client.get("/state")
+    state = response.json()
+    highest_tile = state.get("highest_tile", 0)
 
     if target is None:
         return EvaluationResult(
